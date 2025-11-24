@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "752461189990",
+    "project_id": "deeplearningappproject",
+    "storage_bucket": "deeplearningappproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:752461189990:android:8f318fd2e1acd99a5c6ea7",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD39iqtvdabFrHO9A-9awKSbfVttxPdnK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyCMuOlImkghbwFAr55aU9nv38WnoJ4eGpw</string>
+	<key>GCM_SENDER_ID</key>
+	<string>752461189990</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.cjh.flutterWorkspace</string>
+	<key>PROJECT_ID</key>
+	<string>deeplearningappproject</string>
+	<key>STORAGE_BUCKET</key>
+	<string>deeplearningappproject.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:752461189990:ios:9e5c3d9cea06c8f55c6ea7</string>
+</dict>
+</plist>
