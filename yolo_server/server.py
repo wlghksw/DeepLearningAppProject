@@ -29,7 +29,7 @@ app.add_middleware(
 # YOLO 모델 로드
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
-    "../YOLO_TRAINING_RESULTS/smartphone_ver3/weights/best.pt"
+    "../smartphone_ver4_detect/best.pt"
 )
 
 if not os.path.exists(MODEL_PATH):
@@ -79,8 +79,20 @@ class InspectionResponse(BaseModel):
 
 def base64_to_image(base64_str: str) -> Image.Image:
     """Base64 문자열을 PIL Image로 변환"""
-    image_data = base64.b64decode(base64_str)
-    return Image.open(io.BytesIO(image_data))
+    try:
+        # base64 문자열에서 데이터 부분만 추출 (data:image/...;base64, 부분 제거)
+        if ',' in base64_str:
+            base64_str = base64_str.split(',')[1]
+        
+        image_data = base64.b64decode(base64_str)
+        image = Image.open(io.BytesIO(image_data))
+        # RGB로 변환 (RGBA나 다른 형식일 수 있음)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        return image
+    except Exception as e:
+        print(f"❌ 이미지 디코딩 오류: {str(e)}")
+        raise ValueError(f"이미지 디코딩 실패: {str(e)}")
 
 
 def image_to_base64(image: Image.Image) -> str:
@@ -332,11 +344,22 @@ async def health_check():
 async def inspect_phone(request: InspectionRequest):
     """스마트폰 검사 (전면, 후면만)"""
     try:
+        print(f"\n{'='*60}")
+        print(f"📥 검사 요청 수신")
+        print(f"   이미지 키: {list(request.images.keys())}")
+        print(f"   배터리 상태: {request.battery_health}")
+        
         # 이미지 디코딩 (전면, 후면만)
         images = {}
         for view_name, base64_str in request.images.items():
             if view_name in ["front", "back"]:
-                images[view_name] = base64_to_image(base64_str)
+                print(f"   🔄 {view_name} 이미지 디코딩 중... (길이: {len(base64_str)} chars)")
+                try:
+                    images[view_name] = base64_to_image(base64_str)
+                    print(f"   ✅ {view_name} 이미지 디코딩 성공: {images[view_name].size}")
+                except Exception as e:
+                    print(f"   ❌ {view_name} 이미지 디코딩 실패: {str(e)}")
+                    raise
         
         # 각 이미지 분석
         all_damages = []
@@ -446,7 +469,12 @@ async def inspect_phone(request: InspectionRequest):
         import traceback
         error_detail = f"검사 실패: {str(e)}\n{traceback.format_exc()}"
         print(f"❌ 에러 발생: {error_detail}")  # 서버 로그에 출력
-        raise HTTPException(status_code=500, detail=f"검사 실패: {str(e)}")
+        print(f"❌ 요청 데이터: images keys = {list(request.images.keys()) if request.images else 'None'}")
+        # 더 자세한 에러 정보 반환
+        error_message = str(e)
+        if len(error_message) > 200:
+            error_message = error_message[:200] + "..."
+        raise HTTPException(status_code=500, detail=f"검사 실패: {error_message}")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ enum InspectionMode {
 }
 
 class InspectionService {
-  static InspectionMode _mode = InspectionMode.gemini;
+  static InspectionMode _mode = InspectionMode.yolo;
 
   /// 검사 모드 설정
   static void setMode(InspectionMode mode) {

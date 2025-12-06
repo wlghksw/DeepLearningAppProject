@@ -25,7 +25,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
   bool _isAnalyzing = false;
   InspectionReport? _report;
   String? _error;
-  InspectionMode _selectedMode = InspectionMode.gemini;
+  InspectionMode _selectedMode = InspectionMode.yolo;
   bool _isCheckingYOLO = false;
 
   Future<void> _pickImage(String position) async {
@@ -254,48 +254,57 @@ class _InspectionScreenState extends State<InspectionScreen> {
                     ),
                     if (_selectedMode == InspectionMode.yolo) ...[
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          if (_isCheckingYOLO)
-                            const SizedBox(
+                      if (_isCheckingYOLO)
+                        const Row(
+                          children: [
+                            SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          else
-                            FutureBuilder<bool>(
-                            future: YOLOService.testConnection(),
-                            builder: (context, snapshot) {
-                              final isConnected = snapshot.data ?? false;
-                              return Row(
-                                children: [
-                                  Icon(
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              '연결 확인 중...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.neutral,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        FutureBuilder<bool>(
+                          future: YOLOService.testConnection(),
+                          builder: (context, snapshot) {
+                            final isConnected = snapshot.data ?? false;
+                            return Row(
+                              children: [
+                                Icon(
+                                  isConnected
+                                      ? Icons.check_circle
+                                      : Icons.error_outline,
+                                  size: 16,
+                                  color: isConnected
+                                      ? Colors.green
+                                      : Colors.orange,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
                                     isConnected
-                                        ? Icons.check_circle
-                                        : Icons.error_outline,
-                                    size: 16,
-                                    color: isConnected
-                                        ? Colors.green
-                                        : Colors.orange,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      isConnected
-                                          ? 'YOLO 서버 연결됨'
-                                          : 'YOLO 서버 연결 필요 (${YOLOService.getBaseUrl()})',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.neutral.withValues(alpha: 0.6),
-                                      ),
+                                        ? 'YOLO 서버 연결됨'
+                                        : 'YOLO 서버 연결 필요 (${YOLOService.getBaseUrl()})',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.neutral.withValues(alpha: 0.6),
                                     ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                     ],
                   ],
                 ),
@@ -314,7 +323,8 @@ class _InspectionScreenState extends State<InspectionScreen> {
                   children: [
                     Row(
                       children: [
-                        Expanded(
+                        Flexible(
+                          flex: 1,
                           child: _ImageUploader(
                             label: '전면',
                             image: _frontImage,
@@ -322,7 +332,8 @@ class _InspectionScreenState extends State<InspectionScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
+                        Flexible(
+                          flex: 1,
                           child: _ImageUploader(
                             label: '후면',
                             image: _backImage,
@@ -584,10 +595,12 @@ class _InspectionScreenState extends State<InspectionScreen> {
                                   bottomLeft: Radius.circular(12),
                                   bottomRight: Radius.circular(12),
                                 ),
-                                child: Image.memory(
-                                  bytes,
-                                  fit: BoxFit.contain,
+                                child: SizedBox(
                                   width: double.infinity,
+                                  child: Image.memory(
+                                    bytes,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                               ),
                             ],
@@ -722,9 +735,11 @@ class _ImageUploader extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: AspectRatio(
-        aspectRatio: 1.0, // 정사각형 비율
-        child: Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return AspectRatio(
+            aspectRatio: 1.0, // 정사각형 비율
+            child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -774,18 +789,20 @@ class _ImageUploader extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.memory(
-                          snapshot.data!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            print('Image.memory 오류: $error');
-                            return Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.broken_image, size: 48),
-                              ),
-                            );
-                          },
+                        child: SizedBox.expand(
+                          child: Image.memory(
+                            snapshot.data!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Image.memory 오류: $error');
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: Icon(Icons.broken_image, size: 48),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                       Positioned(
@@ -839,7 +856,9 @@ class _ImageUploader extends StatelessWidget {
                   ),
                 ],
               ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
