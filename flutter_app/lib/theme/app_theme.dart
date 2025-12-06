@@ -4,10 +4,17 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const Color primary = Color(0xFFFF7A34);
+  // Stone/Orange 테마 (SmartGrade AI 스타일)
+  static const Color primary = Color(0xFFFB923C); // orange-400
+  static const Color primaryDark = Color(0xFFEA580C); // orange-600
   static const Color accent = Color(0xFF2FB16D);
-  static const Color neutral = Color(0xFF44413C);
-  static const Color surface = Color(0xFFFFF7ED);
+  static const Color neutral = Color(0xFF292524); // stone-800
+  static const Color neutralLight = Color(0xFF78716C); // stone-500
+  static const Color neutralLighter = Color(0xFFA8A29E); // stone-400
+  static const Color surface = Color(0xFFFDFCFC); // stone-50
+  static const Color stone900 = Color(0xFF0C0A09); // stone-900
+  static const Color stone100 = Color(0xFFF5F5F4); // stone-100
+  static const Color stone200 = Color(0xFFE7E5E4); // stone-200
 
   static ThemeData light() {
     final base = ThemeData.light(useMaterial3: true);

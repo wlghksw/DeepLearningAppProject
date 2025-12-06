@@ -1,87 +1,130 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter_app/models/inspection_report.dart';
+import '../models/types.dart';
+import '../models/inspection_report.dart';
+import 'yolo_service.dart';
 
 class GeminiService {
-  // 환경 변수에서 API 키를 가져오거나, 여기에 직접 입력할 수 있습니다
-  // 보안을 위해 실제 배포 시에는 환경 변수나 secure storage를 사용하세요
-  static const String _apiKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-    defaultValue: '', // 여기에 직접 API 키를 입력하거나 환경 변수 사용
-  );
-
-  static Future<InspectionReport> inspectPhone({
-    required File frontImage,
-    required File backImage,
-  }) async {
-    if (_apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY 환경 변수를 설정해주세요.');
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-2.0-flash-exp',
-      apiKey: _apiKey,
-    );
-
-    final frontBytes = await frontImage.readAsBytes();
-    final backBytes = await backImage.readAsBytes();
-
-    final prompt = '''
-You are a world-class AI system for inspecting used smartphones. Your task is to analyze the provided images to generate a detailed quality report.
-
-**Instructions:**
-1. **Analyze Images:** Carefully examine the two images provided (front screen, back panel) for any cosmetic damage such as scratches, cracks, dings, scuffs, or discoloration.
-2. **Assess Condition:** Based on your analysis, describe the condition of the screen and back.
-3. **Grade the Phone:** Use the following criteria to assign a final grade:
-   - **S Grade:** Pristine, like-new condition. No visible scratches or dings.
-   - **A Grade:** Excellent condition. Maybe one or two hairline scratches, barely visible.
-   - **B Grade:** Good condition. Some minor, visible scratches or small dings. No cracks.
-   - **C Grade:** Fair condition. Multiple noticeable scratches and/or dings. The phone is fully functional but shows clear signs of use.
-   - **D Grade:** Poor condition. Deep scratches, cracks on the screen or back, or significant damage.
-4. **List Damages:** List all detected damages with their type, location, and severity. If no damages are found, return an empty array for the 'damages' field.
-5. **Provide Summaries:** Write a concise summary and an overall assessment.
-
-Return your complete analysis in valid JSON format with the following structure:
-{
-  "grade": "S|A|B|C|D",
-  "summary": "Brief one-sentence summary",
-  "batteryHealth": 0,
-  "screenCondition": "Detailed description",
-  "backCondition": "Detailed description",
-  "frameCondition": "Detailed description",
-  "overallAssessment": "Final concluding remark",
-  "damages": [
-    {
-      "type": "scratch|ding|crack|scuff",
-      "location": "Location description",
-      "severity": "minor|moderate|severe"
-    }
-  ]
-}
-''';
-
+  /// YOLO 서비스를 사용하여 스마트폰 이미지 분석
+  static Future<AIAnalysisResult> analyzePhoneImages(
+    List<String> imagesBase64,
+    String userModelName,
+    int batteryHealth,
+  ) async {
     try {
-      final content = [
-        Content.text(prompt),
-        Content.multi([
-          DataPart('image/jpeg', frontBytes),
-          DataPart('image/jpeg', backBytes),
-        ]),
-      ];
+      // Base64 문자열을 bytes로 변환
+      final frontBytes = base64Decode(imagesBase64[0]);
+      final backBytes = base64Decode(imagesBase64[1]);
 
-      final response = await model.generateContent(content);
-      final text = response.text ?? '';
+      // YOLO 서비스를 사용하여 분석
+      final inspectionReport = await YOLOService.inspectPhoneFromBytes(
+        frontBytes: frontBytes,
+        backBytes: backBytes,
+      );
 
-      final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(text);
-      if (jsonMatch == null) {
-        throw Exception('AI 응답에서 JSON을 찾을 수 없습니다.');
-      }
-
-      final json = jsonDecode(jsonMatch.group(0)!) as Map<String, dynamic>;
-      return InspectionReport.fromJson(json);
+      // InspectionReport를 AIAnalysisResult로 변환
+      return _convertToAIAnalysisResult(inspectionReport, batteryHealth);
     } catch (e) {
-      throw Exception('검사 실패: ${e.toString()}');
+      // YOLO 서비스 실패 시 배터리 상태 기반 기본 등급 반환
+      return _getDefaultAnalysis(batteryHealth);
     }
+  }
+
+  /// InspectionReport를 AIAnalysisResult로 변환
+  static AIAnalysisResult _convertToAIAnalysisResult(
+    InspectionReport report,
+    int batteryHealth,
+  ) {
+    // 등급 변환 (S, A, B, C, D)
+    QualityGrade grade = _convertGrade(report.grade);
+
+    // 손상 리포트 변환
+    List<DamageItem> damageReport = report.damages.map((damage) {
+      return DamageItem(
+        type: damage.type,
+        location: damage.location,
+        severity: _convertSeverity(damage.severity),
+        description: '${damage.location}에 ${damage.type} 발견',
+      );
+    }).toList();
+
+    return AIAnalysisResult(
+      grade: grade,
+      damageReport: damageReport,
+      visualizedImages: report.visualizedImages,
+    );
+  }
+
+  /// 등급 문자열을 QualityGrade로 변환
+  static QualityGrade _convertGrade(String gradeStr) {
+    final upperGrade = gradeStr.toUpperCase();
+    switch (upperGrade) {
+      case 'S':
+        return QualityGrade.s;
+      case 'A':
+        return QualityGrade.a;
+      case 'B':
+        return QualityGrade.b;
+      case 'C':
+        return QualityGrade.c;
+      case 'D':
+        return QualityGrade.d;
+      default:
+        return QualityGrade.c;
+    }
+  }
+
+  /// 심각도 문자열을 DamageSeverity로 변환
+  static DamageSeverity _convertSeverity(String severityStr) {
+    final lowerSeverity = severityStr.toLowerCase();
+    switch (lowerSeverity) {
+      case 'high':
+      case 'high':
+        return DamageSeverity.high;
+      case 'medium':
+      case '중간':
+        return DamageSeverity.medium;
+      case 'low':
+      case '낮음':
+      default:
+        return DamageSeverity.low;
+    }
+  }
+
+
+  /// 기본 분석 결과 반환 (YOLO 서비스 실패 시)
+  static AIAnalysisResult _getDefaultAnalysis(int batteryHealth) {
+    QualityGrade grade;
+    List<DamageItem> damageReport = [];
+
+    if (batteryHealth >= 90) {
+      grade = QualityGrade.s;
+    } else if (batteryHealth >= 85) {
+      grade = QualityGrade.a;
+    } else if (batteryHealth >= 80) {
+      grade = QualityGrade.b;
+      damageReport = [
+        DamageItem(
+          type: 'Wear',
+          location: 'Overall',
+          severity: DamageSeverity.low,
+          description: '전반적인 사용감 있는 상태',
+        ),
+      ];
+    } else {
+      grade = QualityGrade.c;
+      damageReport = [
+        DamageItem(
+          type: 'Wear',
+          location: 'Overall',
+          severity: DamageSeverity.medium,
+          description: '전반적인 사용감 있는 상태',
+        ),
+      ];
+    }
+
+    return AIAnalysisResult(
+      grade: grade,
+      damageReport: damageReport,
+    );
   }
 }

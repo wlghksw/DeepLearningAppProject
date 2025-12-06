@@ -175,218 +175,256 @@ class _InspectionScreenState extends State<InspectionScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                'AI 스마트폰 상태 검사',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.neutral,
-                ),
+        child: Stack(
+          children: [
+            // Ambient Background Effects
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _AmbientBackgroundPainter(),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '휴대폰 이미지를 업로드하여 AI 기반 품질 분석을 받아보세요.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.neutral.withValues(alpha: 0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              // 검사 모드 선택
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.08),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '검사 모드 선택',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.neutral,
+            ),
+            SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  // 헤더
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '내 폰 판매하기',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.stone900,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ModeButton(
-                            label: 'Gemini AI',
-                            icon: Icons.auto_awesome,
-                            isSelected: _selectedMode == InspectionMode.gemini,
-                            onTap: () {
-                              setState(() {
-                                _selectedMode = InspectionMode.gemini;
-                                InspectionService.setMode(InspectionMode.gemini);
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _ModeButton(
-                            label: 'YOLO ver3',
-                            icon: Icons.camera_alt,
-                            isSelected: _selectedMode == InspectionMode.yolo,
-                            onTap: () {
-                              setState(() {
-                                _selectedMode = InspectionMode.yolo;
-                                InspectionService.setMode(InspectionMode.yolo);
-                              });
-                              _checkYOLOConnection();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_selectedMode == InspectionMode.yolo) ...[
                       const SizedBox(height: 8),
-                      if (_isCheckingYOLO)
-                        const Row(
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              '연결 확인 중...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.neutral,
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        FutureBuilder<bool>(
-                          future: YOLOService.testConnection(),
-                          builder: (context, snapshot) {
-                            final isConnected = snapshot.data ?? false;
-                            return Row(
-                              children: [
-                                Icon(
-                                  isConnected
-                                      ? Icons.check_circle
-                                      : Icons.error_outline,
-                                  size: 16,
-                                  color: isConnected
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    isConnected
-                                        ? 'YOLO 서버 연결됨'
-                                        : 'YOLO 서버 연결 필요 (${YOLOService.getBaseUrl()})',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.neutral.withValues(alpha: 0.6),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
+                      Text(
+                        'AI가 사진을 분석하여 투명한 등급을 매겨드립니다.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppTheme.neutralLight,
+                          height: 1.5,
                         ),
+                      ),
                     ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.08),
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
+                  const SizedBox(height: 40),
+                  
+                  // Step 1: 사진 등록
+                  _StepSection(
+                    stepNumber: 1,
+                    title: '사진 등록',
+                    child: Row(
                       children: [
-                        Flexible(
-                          flex: 1,
+                        Expanded(
                           child: _ImageUploader(
-                            label: '전면',
+                            label: '전면 (Screen)',
                             image: _frontImage,
                             onTap: () => _pickImage('front'),
+                            onRemove: _frontImage != null
+                                ? () {
+                                    setState(() {
+                                      _frontImage = null;
+                                    });
+                                  }
+                                : null,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Flexible(
-                          flex: 1,
+                        const SizedBox(width: 16),
+                        Expanded(
                           child: _ImageUploader(
-                            label: '후면',
+                            label: '후면 (Back)',
                             image: _backImage,
                             onTap: () => _pickImage('back'),
+                            onRemove: _backImage != null
+                                ? () {
+                                    setState(() {
+                                      _backImage = null;
+                                    });
+                                  }
+                                : null,
                           ),
                         ),
                       ],
                     ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 20),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  // Step 2: 검사 모드 선택 (간소화)
+                  if (_selectedMode == InspectionMode.yolo) ...[
+                    _StepSection(
+                      stepNumber: 2,
+                      title: 'AI 검수',
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.3)),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            const Icon(Icons.error_outline, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.smartphone,
+                                    color: AppTheme.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'YOLO AI 검수',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.stone900,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        '딥러닝 모델 기반 자동 검출',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.neutralLight,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                FutureBuilder<bool>(
+                                  future: YOLOService.testConnection(),
+                                  builder: (context, snapshot) {
+                                    final isConnected = snapshot.data ?? false;
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isConnected 
+                                            ? Colors.green.withValues(alpha: 0.1)
+                                            : Colors.orange.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isConnected ? Icons.check_circle : Icons.error_outline,
+                                            size: 14,
+                                            color: isConnected ? Colors.green : Colors.orange,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            isConnected ? '연결됨' : '연결 필요',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: isConnected ? Colors.green : Colors.orange,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _startInspection,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text(
-                          'AI 검사 시작',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                  
+                  // 에러 메시지
+                  if (_error != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
                         ),
                       ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                ),
+                  
+                  // AI 검수 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _frontImage != null && _backImage != null ? _startInspection : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ).copyWith(
+                        elevation: WidgetStateProperty.all(0),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.smartphone, size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'AI 검수 및 등록',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -462,108 +500,193 @@ class _InspectionScreenState extends State<InspectionScreen> {
 
   Widget _buildResultView(InspectionReport report) {
     final gradeConfig = {
-      'S': {'color': Colors.green, 'label': '최상'},
-      'A': {'color': Colors.blue, 'label': '우수'},
-      'B': {'color': Colors.orange, 'label': '양호'},
-      'C': {'color': Colors.deepOrange, 'label': '보통'},
-      'D': {'color': Colors.red, 'label': '미흡'},
+      'S': {'color': const Color(0xFF9333EA), 'label': '최상'}, // purple
+      'A': {'color': const Color(0xFF2563EB), 'label': '우수'}, // blue
+      'B': {'color': const Color(0xFF10B981), 'label': '양호'}, // emerald
+      'C': {'color': const Color(0xFFFB923C), 'label': '보통'}, // orange
+      'D': {'color': const Color(0xFFEF4444), 'label': '미흡'}, // red
     };
 
     final config =
-        gradeConfig[report.grade] ?? {'color': Colors.grey, 'label': '알 수 없음'};
+        gradeConfig[report.grade] ?? {'color': AppTheme.neutralLighter, 'label': '알 수 없음'};
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             children: [
+              // 다크 모드 결과 카드 (참고 프로젝트 스타일)
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.08),
-                  ),
+                  color: AppTheme.stone900,
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color:
-                            (config['color'] as Color).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          report.grade,
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: config['color'] as Color,
+                    // 헤더
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '검수 완료',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'AI가 판정한 최종 등급입니다.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                report.grade,
+                                style: const TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '등급',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Damage Report
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '${config['label']} 상태',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: config['color'] as Color,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'DAMAGE REPORT',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withValues(alpha: 0.5),
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (report.damages.isEmpty)
+                            Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '발견된 손상이 없습니다.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: const Color(0xFF10B981),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            ...report.damages.map((damage) {
+                              final isHigh = damage.severity == 'severe';
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 6),
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: isHigh 
+                                            ? const Color(0xFFEF4444)
+                                            : AppTheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            damage.location,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${damage.type} - ${damage.severity}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white.withValues(alpha: 0.6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      report.summary,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.neutral.withValues(alpha: 0.7),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    _DetailRow(
-                      icon: Icons.phone_android,
-                      label: '화면 상태',
-                      value: report.screenCondition,
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailRow(
-                      icon: Icons.phone_iphone,
-                      label: '후면 상태',
-                      value: report.backCondition,
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailRow(
-                      icon: Icons.square,
-                      label: '프레임 상태',
-                      value: report.frameCondition,
                     ),
                     // 시각화된 이미지 표시
                     if (report.visualizedImages != null && report.visualizedImages!.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '검출된 손상 위치',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.neutral,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                       ...report.visualizedImages!.entries.map((entry) {
                         final viewName = entry.key;
                         final base64Image = entry.value;
@@ -571,141 +694,64 @@ class _InspectionScreenState extends State<InspectionScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: AppTheme.primary.withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha: 0.1),
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(
-                                  viewName == 'front' ? '전면 검출 결과' : '후면 검출 결과',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.neutral,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    viewName == 'front' ? '전면 검출 결과' : '후면 검출 결과',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  bottomLeft: Radius.circular(12),
-                                  bottomRight: Radius.circular(12),
-                                ),
-                                child: SizedBox(
+                                Image.memory(
+                                  bytes,
+                                  fit: BoxFit.contain,
                                   width: double.infinity,
-                                  child: Image.memory(
-                                    bytes,
-                                    fit: BoxFit.contain,
-                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         );
                       }),
                     ],
-                    if (report.damages.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '발견된 문제점',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.neutral,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...report.damages.map(
-                        (damage) => Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: AppTheme.primary.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.orange,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${damage.type} on ${damage.location}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.neutral,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '심각도: ${damage.severity}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.neutral
-                                            .withValues(alpha: 0.6),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '종합 평가',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.neutral,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      report.overallAssessment,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.neutral.withValues(alpha: 0.7),
-                      ),
-                    ),
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: _reset,
                         style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppTheme.stone900,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        child: const Text(
-                          '다른 휴대폰 검사하기',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '다른 휴대폰 검사하기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward, size: 20),
+                          ],
                         ),
                       ),
                     ),
@@ -725,140 +771,138 @@ class _ImageUploader extends StatelessWidget {
     required this.label,
     required this.image,
     required this.onTap,
+    this.onRemove,
   });
 
   final String label;
   final XFile? image;
   final VoidCallback onTap;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return AspectRatio(
-            aspectRatio: 1.0, // 정사각형 비율
-            child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: image != null
-                  ? AppTheme.primary
-                  : AppTheme.primary.withValues(alpha: 0.2),
-              width: image != null ? 2 : 1,
-            ),
-          ),
-          child: image != null
-            ? FutureBuilder<Uint8List>(
-                future: image!.readAsBytes(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    print('이미지 로드 오류: ${snapshot.error}');
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error, color: Colors.red),
-                          const SizedBox(height: 8),
-                          Text(
-                            '이미지 로드 실패',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.neutral.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(child: Icon(Icons.error));
-                  }
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox.expand(
-                          child: Image.memory(
-                            snapshot.data!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Image.memory 오류: $error');
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: Icon(Icons.broken_image, size: 48),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            label,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.camera_alt,
-                    size: 32,
-                    color: AppTheme.neutral.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.neutral.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '클릭하여 업로드',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.neutral.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.neutralLight,
+                letterSpacing: 0.5,
               ),
             ),
-          );
-        },
+          ),
+          AspectRatio(
+            aspectRatio: 3 / 4, // 세로형 비율
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: image != null
+                      ? AppTheme.stone900
+                      : AppTheme.stone200,
+                  width: image != null ? 2 : 2,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: image != null
+                    ? FutureBuilder<Uint8List>(
+                        future: image!.readAsBytes(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (snapshot.hasError || !snapshot.hasData) {
+                            return Container(
+                              color: AppTheme.stone100,
+                              child: const Center(
+                                child: Icon(Icons.broken_image, size: 48, color: AppTheme.neutralLighter),
+                              ),
+                            );
+                          }
+                          return Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.memory(
+                                snapshot.data!,
+                                fit: BoxFit.cover,
+                              ),
+                              if (onRemove != null)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      onRemove!();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.stone900.withValues(alpha: 0.8),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppTheme.stone200,
+                            width: 2,
+                            style: BorderStyle.solid,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.stone100,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 24,
+                                color: AppTheme.neutralLighter,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '사진 업로드',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.neutralLighter,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -919,49 +963,101 @@ class _ModeButton extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
+// Step Section 위젯
+class _StepSection extends StatelessWidget {
+  const _StepSection({
+    required this.stepNumber,
+    required this.title,
+    required this.child,
   });
 
-  final IconData icon;
-  final String label;
-  final String value;
+  final int stepNumber;
+  final String title;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppTheme.neutral.withValues(alpha: 0.5)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.neutral.withValues(alpha: 0.7),
+        Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: AppTheme.stone900,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '$stepNumber',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.neutral,
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.stone900,
+              ),
             ),
-          ),
+          ],
         ),
+        const SizedBox(height: 16),
+        child,
       ],
     );
   }
+}
+
+// Ambient Background Painter
+class _AmbientBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint1 = Paint()
+      ..color = AppTheme.primary.withValues(alpha: 0.1)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 120);
+    
+    final paint2 = Paint()
+      ..color = const Color(0xFFFFE4E6).withValues(alpha: 0.1)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 100);
+    
+    final paint3 = Paint()
+      ..color = AppTheme.stone100.withValues(alpha: 0.15)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 120);
+    
+    // Top left circle
+    canvas.drawCircle(
+      Offset(-size.width * 0.1, -size.height * 0.1),
+      size.width * 0.5,
+      paint1,
+    );
+    
+    // Top right circle
+    canvas.drawCircle(
+      Offset(size.width * 1.1, size.height * 0.2),
+      size.width * 0.4,
+      paint2,
+    );
+    
+    // Bottom left circle
+    canvas.drawCircle(
+      Offset(size.width * 0.2, size.height * 1.1),
+      size.width * 0.6,
+      paint3,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 
