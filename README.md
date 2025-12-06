@@ -32,21 +32,17 @@ import albumentations as A
 import numpy as np
 from tqdm import tqdm
 
-# =========================================================
-# 🛠️ [헤더 설정]
-# =========================================================
+
 SOURCE_PATH = "./DeepLearningAppProject" 
 OUTPUT_ROOT = "./final_datasets"
 
-# 생성할 데이터셋 선택
+
 ENABLE_BASE       = True
 ENABLE_FLARE      = True
 ENABLE_GEOMETRIC  = True
 ENABLE_BRIGHTNESS = True
 
-# =========================================================
-# 좌표 강제 보정 기능 
-# =========================================================
+
 def clamp_yolo_bbox(bbox):
     """
     YOLO 좌표(xc, yc, w, h)가 0~1 범위를 벗어났을 때,
@@ -110,10 +106,7 @@ def save_yolo_label(txt_path, bboxes, class_labels):
             line = f"{cls} {bbox[0]:.6f} {bbox[1]:.6f} {bbox[2]:.6f} {bbox[3]:.6f}\n"
             f.write(line)
 
-# =========================================================
-# 🎨 [증강 파이프라인]
-# =========================================================
-# check_each_transform=False를 추가해서 미세한 오차는 무시하도록 설정
+
 bbox_params = A.BboxParams(format='yolo', min_visibility=0.3, label_fields=['class_labels'], check_each_transform=False)
 
 pipelines = {}
@@ -133,9 +126,7 @@ if ENABLE_BRIGHTNESS:
         A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=1.0)
     ], bbox_params=bbox_params)
 
-# =========================================================
-# 🚀 [실행 로직]
-# =========================================================
+
 def process_and_save(pipeline_name, transform, subset, img_path, save_root):
     try:
         file_name = os.path.basename(img_path)
@@ -193,7 +184,7 @@ def process_and_save(pipeline_name, transform, subset, img_path, save_root):
         # 에러가 나도 멈추지 않고 로그만 출력하고 다음 사진으로 넘어감
         print(f"⚠️ 처리 실패 ({file_name}): {e}")
 
-# 메인 실행
+
 if __name__ == "__main__":
     subsets = ["train", "valid", "test"]
     
