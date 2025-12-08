@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_app/models/inspection_report.dart';
 import 'package:flutter_app/services/inspection_service.dart';
 import 'package:flutter_app/services/yolo_service.dart';
@@ -30,11 +31,90 @@ class _InspectionScreenState extends State<InspectionScreen> {
 
   Future<void> _pickImage(String position) async {
     try {
-      // 웹에서는 ImageSource.gallery가 파일 선택 다이얼로그를 엽니다
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85, // 이미지 품질 설정
-      );
+      XFile? image;
+      
+      // macOS/데스크톱에서는 file_picker를 우선 사용
+      if (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+        try {
+          print('📁 file_picker로 파일 선택 시도...');
+          FilePickerResult? result = await FilePicker.platform.pickFiles(
+            type: FileType.image,
+            allowMultiple: false,
+            dialogTitle: '이미지 선택',
+          );
+          
+          if (result != null && result.files.isNotEmpty) {
+            final file = result.files.first;
+            if (file.path != null) {
+              image = XFile(file.path!);
+              print('✅ file_picker로 파일 선택됨: ${file.path}');
+            } else if (file.bytes != null) {
+              // 웹이나 일부 플랫폼에서는 bytes로 제공될 수 있음
+              // 임시 파일로 저장
+              final tempDir = Directory.systemTemp;
+              final tempFile = File('${tempDir.path}/temp_image_${DateTime.now().millisecondsSinceEpoch}.jpg');
+              await tempFile.writeAsBytes(file.bytes!);
+              image = XFile(tempFile.path);
+              print('✅ file_picker로 파일 선택됨 (bytes): ${tempFile.path}');
+            }
+          } else {
+            print('ℹ️ 사용자가 파일 선택 취소');
+            return;
+          }
+        } catch (e) {
+          print('⚠️ file_picker 실패: $e');
+          // file_picker 실패 시 image_picker로 폴백
+          print('📷 image_picker로 폴백 시도...');
+          try {
+            image = await _picker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 85,
+            );
+            if (image != null) {
+              print('✅ image_picker로 이미지 선택됨: ${image.path}');
+            }
+          } catch (e2) {
+            print('❌ image_picker도 실패: $e2');
+            setState(() {
+              _error = '이미지 선택에 실패했습니다. 파일 선택 다이얼로그를 확인해주세요.\n오류: ${e.toString()}';
+            });
+            return;
+          }
+        }
+      } else {
+        // 모바일/웹에서는 image_picker 사용
+        ImageSource? source = await showDialog<ImageSource>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('이미지 선택'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('갤러리에서 선택'),
+                    onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                  ),
+                  if (!kIsWeb)
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text('카메라로 촬영'),
+                      onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+        
+        if (source != null) {
+          image = await _picker.pickImage(
+            source: source,
+            imageQuality: 85,
+          );
+        }
+      }
       
       if (image != null) {
         print('✅ 이미지 선택됨: ${image.name}, 경로: ${image.path}');
@@ -43,8 +123,16 @@ class _InspectionScreenState extends State<InspectionScreen> {
         try {
           final bytes = await image.readAsBytes();
           print('✅ 이미지 바이트 읽기 성공: ${bytes.length} bytes');
+          
+          if (bytes.isEmpty) {
+            throw Exception('이미지 파일이 비어있습니다.');
+          }
         } catch (e) {
           print('⚠️ 이미지 바이트 읽기 실패: $e');
+          setState(() {
+            _error = '이미지를 읽을 수 없습니다: ${e.toString()}';
+          });
+          return;
         }
         
         setState(() {
@@ -62,11 +150,12 @@ class _InspectionScreenState extends State<InspectionScreen> {
         // 사용자가 취소한 경우
         print('ℹ️ 사용자가 이미지 선택 취소');
         setState(() {
-          _error = null; // 에러 메시지 제거
+          _error = null;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ 이미지 선택 오류: $e');
+      print('스택 트레이스: $stackTrace');
       setState(() {
         _error = '이미지 선택 중 오류가 발생했습니다: ${e.toString()}';
       });

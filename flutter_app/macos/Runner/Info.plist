@@ -28,5 +28,13 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>이미지를 선택하기 위해 사진 라이브러리 접근이 필요합니다.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>카메라로 사진을 촬영하기 위해 카메라 접근이 필요합니다.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>이미지 파일을 선택하기 위해 문서 폴더 접근이 필요합니다.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>이미지 파일을 선택하기 위해 다운로드 폴더 접근이 필요합니다.</string>
 </dict>
 </plist>

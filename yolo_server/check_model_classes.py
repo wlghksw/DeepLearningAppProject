@@ -5,7 +5,7 @@ import os
 
 model_path = os.path.join(
     os.path.dirname(__file__),
-    "../YOLO_TRAINING_RESULTS/smartphone_ver3/weights/best.pt"
+    "../smartphone_ver4_detect2/best.pt"
 )
 
 if os.path.exists(model_path):

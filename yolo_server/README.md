@@ -57,7 +57,7 @@ flutter run
 
 ## 모델 경로
 
-기본 모델 경로: `../YOLO_TRAINING_RESULTS/smartphone_ver3/weights/best.pt`
+기본 모델 경로: `../smartphone_ver4_detect2/best.pt`
 
 다른 모델을 사용하려면 `server.py`의 `MODEL_PATH`를 수정하세요.
 

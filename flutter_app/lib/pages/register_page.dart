@@ -139,9 +139,39 @@ class _RegisterPageState extends State<RegisterPage> {
       status: ProductStatus.listed,
     );
 
+    // 상품을 StoreProvider에 추가
     store.addProduct(product);
+    
     if (context.mounted) {
-      context.go('/product/${product.id}');
+      // 성공 메시지 표시
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                '판매 등록이 완료되었습니다!',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // 메인 페이지(마켓플레이스)로 이동
+      // 약간의 딜레이를 주어 상태 업데이트가 완료되도록 함
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (context.mounted) {
+        context.go('/');
+      }
     }
   }
 
@@ -665,27 +695,30 @@ class _RegisterPageState extends State<RegisterPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '검수 완료',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '검수 완료',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'AI가 판정한 최종 등급입니다.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade400,
+                        const SizedBox(height: 4),
+                        Text(
+                          'AI가 판정한 최종 등급입니다.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
