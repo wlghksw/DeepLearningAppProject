@@ -1,5 +1,8 @@
 # YOLO 기반 스마트폰 결함 검출 시스템
 
+![ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/2825353b-b930-4212-9116-0257b6b1b9fc)
+
+
 # https://www.youtube.com/watch?v=qCleDLR3SwY
 
 AI 기반 스마트폰 중고 거래 플랫폼으로, YOLOv8 모델을 활용하여 스마트폰의 외관 결함을 자동으로 검출하고 등급을 판정하는 시스템입니다.
